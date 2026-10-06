@@ -1,259 +1,288 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f5f7f4" />
-  <title>Station IoT | Température et humidité</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f4">
+  <title>Dashboard | Station ESP32</title>
   <style>
     :root {
       color-scheme: light;
-      --ink: #172522;
+      font-family: system-ui, sans-serif;
+      color: #172522;
+      background: #f5f7f4;
       --muted: #62716d;
       --line: #dce5e0;
-      --paper: #f5f7f4;
-      --white: #fff;
       --green: #16765b;
       --green-soft: #e1f2e9;
-      --orange: #c8583f;
-      --orange-soft: #f9e8e2;
-      font-family: "DM Sans", sans-serif;
+      --red: #c8583f;
     }
 
     * { box-sizing: border-box; }
     body {
-      margin: 0;
       min-height: 100vh;
-      color: var(--ink);
-      background-color: var(--paper);
+      margin: 0;
       background-image: radial-gradient(#dce5e0 0.75px, transparent 0.75px);
       background-size: 18px 18px;
     }
     button { font: inherit; }
-    .shell { width: min(100% - 40px, 920px); margin: 0 auto; }
-    .topbar {
-      min-height: 76px;
+    .shell { width: min(100% - 32px, 760px); margin: 0 auto; }
+    header {
+      min-height: 72px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--line);
-    }
-    .brand { display: flex; align-items: center; gap: 11px; }
-    .brand-mark {
-      width: 34px;
-      aspect-ratio: 1;
-      display: grid;
-      place-items: center;
-      color: var(--white);
-      background: var(--green);
-      border-radius: 9px;
-      font: 700 18px "Space Grotesk", sans-serif;
-    }
-    .brand-name { font: 600 16px "Space Grotesk", sans-serif; }
-    .connection {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ba8a3; }
-    .connection[data-state="connected"] .connection-dot { background: var(--green); }
-    .connection[data-state="error"] .connection-dot { background: var(--orange); }
-    main { padding: 54px 0 48px; }
-    .eyebrow {
-      margin: 0 0 12px;
-      color: var(--green);
-      font: 500 12px "DM Mono", monospace;
-      text-transform: uppercase;
-    }
-    h1 {
-      margin: 0;
-      font: 600 clamp(30px, 6vw, 48px)/1.08 "Space Grotesk", sans-serif;
-    }
-    .subtitle { margin: 13px 0 0; color: var(--muted); font-size: 15px; }
-    .readings {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-top: 38px;
-      border-top: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
-      background: rgb(255 255 255 / 76%);
-    }
-    .reading { min-height: 210px; padding: 26px 30px 24px; }
-    .reading + .reading { border-left: 1px solid var(--line); }
-    .reading-label { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
-    .reading-icon {
-      width: 30px;
-      aspect-ratio: 1;
-      display: grid;
-      place-items: center;
-      border-radius: 8px;
-      color: var(--green);
-      background: var(--green-soft);
-      font: 500 16px "DM Mono", monospace;
-    }
-    .value-line { display: flex; align-items: baseline; gap: 8px; margin-top: 19px; }
-    .value { font: 600 clamp(42px, 8vw, 64px)/1 "Space Grotesk", sans-serif; font-variant-numeric: tabular-nums; }
-    .unit { color: var(--muted); font: 500 20px "DM Mono", monospace; }
-    .reading-note { margin-top: 12px; color: var(--muted); font: 12px "DM Mono", monospace; }
-    .lower-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; padding-top: 30px; }
-    .section-title { margin: 0; font: 600 17px "Space Grotesk", sans-serif; }
-    .section-copy { margin: 7px 0 18px; color: var(--muted); font-size: 13px; }
-    .led-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-    .led-state { display: flex; align-items: center; gap: 9px; font-size: 14px; }
-    .led-indicator { width: 12px; aspect-ratio: 1; border-radius: 50%; background: #a8b2ae; }
-    .led-indicator.on { background: #37a46f; box-shadow: 0 0 0 4px var(--green-soft); }
-    .actions { display: flex; gap: 8px; }
-    .actions button {
-      min-width: 62px;
-      min-height: 38px;
-      padding: 0 13px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      color: var(--ink);
-      background: var(--white);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .actions button:hover:not(:disabled) { border-color: var(--green); color: var(--green); }
-    .actions button:disabled { cursor: wait; opacity: .55; }
-    .footer {
-      display: flex;
       justify-content: space-between;
       gap: 16px;
-      margin-top: 45px;
-      padding-top: 15px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font: 11px "DM Mono", monospace;
+      border-bottom: 1px solid var(--line);
     }
-    #message { color: var(--orange); }
-    @media (max-width: 600px) {
-      .shell { width: min(100% - 28px, 920px); }
-      .topbar { min-height: 64px; }
-      main { padding-top: 38px; }
-      .readings { margin-top: 28px; }
-      .reading { min-height: 176px; padding: 20px 16px; }
-      .reading + .reading { padding-left: 18px; }
-      .lower-grid { grid-template-columns: 1fr; gap: 27px; }
-      .footer { flex-direction: column; gap: 7px; margin-top: 34px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: white;
+      background: var(--green);
     }
-    @media (prefers-reduced-motion: no-preference) {
-      main { animation: enter .45s ease-out both; }
-      @keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .connection { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+    .connection-dot { width: 9px; height: 9px; border-radius: 50%; background: #9ba8a3; }
+    .connection[data-state="connected"] .connection-dot { background: var(--green); }
+    .connection[data-state="error"] .connection-dot { background: var(--red); }
+    main { padding: 48px 0; }
+    .eyebrow { margin: 0 0 10px; color: var(--green); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(30px, 6vw, 44px); line-height: 1.1; }
+    .intro { margin: 12px 0 30px; color: var(--muted); }
+    .sensor-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .sensor-card {
+      padding: 20px 22px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgb(255 255 255 / 90%);
+    }
+    .sensor-label { margin: 0; color: var(--muted); font-size: 14px; }
+    .sensor-value { margin: 10px 0 0; font-size: clamp(34px, 7vw, 48px); font-weight: 700; line-height: 1; }
+    .sensor-unit { color: var(--muted); font-size: 18px; font-weight: 500; }
+    .led-list { display: grid; gap: 14px; }
+    .led-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgb(255 255 255 / 90%);
+    }
+    .led-heading { display: flex; align-items: center; gap: 13px; }
+    .led-indicator {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #a8b2ae;
+    }
+    .led-indicator.on { background: #37a46f; box-shadow: 0 0 0 5px var(--green-soft); }
+    .led-name { margin: 0; font-size: 18px; }
+    .led-state { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .actions { display: flex; gap: 8px; }
+    .actions button {
+      min-width: 64px;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: #172522;
+      background: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .actions button:hover:not(:disabled),
+    .actions button[aria-pressed="true"] { border-color: var(--green); color: var(--green); }
+    .actions button:disabled { cursor: wait; opacity: .55; }
+    .system {
+      min-height: 76px;
+      margin-top: 24px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgb(255 255 255 / 75%);
+    }
+    .system p { margin: 0; }
+    #message { font-size: 14px; }
+    #updatedAt { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 480px) {
+      main { padding-top: 34px; }
+      .sensor-list { gap: 10px; }
+      .sensor-card { padding: 16px 14px; }
+      .sensor-value { font-size: 36px; }
+      .led-card { align-items: flex-start; flex-direction: column; }
+      .actions { width: 100%; }
+      .actions button { flex: 1; }
     }
   </style>
 </head>
 <body>
   <div class="shell">
-    <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">i</span><span class="brand-name">Station IoT</span></div>
-      <div class="connection" id="connection" data-state="waiting" role="status"><span class="connection-dot"></span><span id="connectionText">Connexion...</span></div>
+    <header>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">IoT</span><span>Station ESP32</span></div>
+      <div class="connection" id="connection" data-state="waiting" role="status">
+        <span class="connection-dot" aria-hidden="true"></span>
+        <span id="connectionText">Connexion...</span>
+      </div>
     </header>
 
     <main>
-      <p class="eyebrow">ESP32 / DHT22</p>
-      <h1>Conditions ambiantes</h1>
-      <p class="subtitle">Mesures transmises en temps réel depuis le capteur.</p>
+      <p class="eyebrow">Dashboard / Firebase</p>
+      <h1>Station connectée</h1>
+      <p class="intro">Température, humidité et commande indépendante des deux LED.</p>
 
-      <section class="readings" aria-label="Mesures du capteur">
-        <article class="reading">
-          <div class="reading-label"><span class="reading-icon" aria-hidden="true">T</span>Température</div>
-          <div class="value-line"><span class="value" id="temperature">--.-</span><span class="unit">°C</span></div>
-          <div class="reading-note">DHT22 / GPIO 4</div>
+      <section class="sensor-list" aria-label="Mesures du capteur DHT22">
+        <article class="sensor-card">
+          <p class="sensor-label">Température</p>
+          <p class="sensor-value"><span id="temperature">--.-</span> <span class="sensor-unit">°C</span></p>
         </article>
-        <article class="reading">
-          <div class="reading-label"><span class="reading-icon" aria-hidden="true">H</span>Humidité relative</div>
-          <div class="value-line"><span class="value" id="humidity">--.-</span><span class="unit">%</span></div>
-          <div class="reading-note">DHT22 / GPIO 4</div>
+        <article class="sensor-card">
+          <p class="sensor-label">Humidité relative</p>
+          <p class="sensor-value"><span id="humidity">--.-</span> <span class="sensor-unit">%</span></p>
         </article>
       </section>
 
-      <div class="lower-grid">
-        <section aria-labelledby="ledTitle">
-          <h2 class="section-title" id="ledTitle">LED 1</h2>
-          <p class="section-copy">Commande synchronisée avec Firebase.</p>
-          <div class="led-row">
-            <div class="led-state"><span class="led-indicator" id="ledIndicator"></span><span id="ledState">État inconnu</span></div>
-            <div class="actions">
-              <button id="ledOn" type="button" title="Allumer la LED">ON</button>
-              <button id="ledOff" type="button" title="Éteindre la LED">OFF</button>
+      <section class="led-list" aria-label="Commandes des LED">
+        <article class="led-card" data-led="led_1">
+          <div class="led-heading">
+            <span class="led-indicator" id="led_1_indicator" aria-hidden="true"></span>
+            <div>
+              <h2 class="led-name">LED 1</h2>
+              <p class="led-state" id="led_1_state" aria-live="polite">En attente...</p>
             </div>
           </div>
-        </section>
-        <div aria-live="polite"><h2 class="section-title">État du système</h2><p class="section-copy" id="message">En attente des données Firebase.</p><p class="reading-note">Dernière mesure : <span id="updatedAt">--:--:--</span></p></div>
-      </div>
+          <div class="actions" aria-label="Commande LED 1">
+            <button type="button" data-led="led_1" data-value="true" aria-pressed="false">ON</button>
+            <button type="button" data-led="led_1" data-value="false" aria-pressed="false">OFF</button>
+          </div>
+        </article>
 
-      <footer class="footer"><span>BASE / dht22</span><span>MISE À JOUR AUTOMATIQUE</span></footer>
+        <article class="led-card" data-led="led_2">
+          <div class="led-heading">
+            <span class="led-indicator" id="led_2_indicator" aria-hidden="true"></span>
+            <div>
+              <h2 class="led-name">LED 2</h2>
+              <p class="led-state" id="led_2_state" aria-live="polite">En attente...</p>
+            </div>
+          </div>
+          <div class="actions" aria-label="Commande LED 2">
+            <button type="button" data-led="led_2" data-value="true" aria-pressed="false">ON</button>
+            <button type="button" data-led="led_2" data-value="false" aria-pressed="false">OFF</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="system" aria-live="polite">
+        <p id="message">Lecture des états depuis Firebase...</p>
+        <p id="updatedAt">Dernière synchronisation : --:--:--</p>
+      </section>
+      <footer>Les états sont synchronisés avec la base Realtime Database.</footer>
     </main>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-    import { getDatabase, onValue, ref, set } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD2C_E45ECsLXO4W6fs6NCEiF0MZPe02M8",
-      authDomain: "esp32client-22674.firebaseapp.com",
-      databaseURL: "https://esp32client-22674-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "esp32client-22674",
-      storageBucket: "esp32client-22674.firebasestorage.app",
-      messagingSenderId: "666286288551",
-      appId: "1:666286288551:web:f83f76867e84d8e84a7582"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
+  <script>
+    const databaseUrl = "https://controle-leds-caaad-default-rtdb.europe-west1.firebasedatabase.app";
+    const ledKeys = ["led_1", "led_2"];
     const connection = document.getElementById("connection");
     const connectionText = document.getElementById("connectionText");
     const message = document.getElementById("message");
+    const updatedAt = document.getElementById("updatedAt");
 
-    onValue(ref(database, "/dht22"), (snapshot) => {
-      const reading = snapshot.val();
-      if (!reading || typeof reading.temperature !== "number" || typeof reading.humidity !== "number") {
-        message.textContent = "Aucune mesure reçue. Vérifiez l'ESP32 et le chemin /dht22.";
-        connection.dataset.state = "waiting";
-        connectionText.textContent = "En attente";
-        return;
+    function renderLed(key, value) {
+      const indicator = document.getElementById(`${key}_indicator`);
+      const state = document.getElementById(`${key}_state`);
+      indicator.classList.toggle("on", value === true);
+      state.textContent = value === true ? "Allumée" : "Éteinte";
+
+      document.querySelectorAll(`button[data-led="${key}"]`).forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.value === String(value)));
+      });
+    }
+
+    function setConnection(state, text) {
+      connection.dataset.state = state;
+      connectionText.textContent = text;
+    }
+
+    async function readLedStates() {
+      const response = await fetch(`${databaseUrl}/.json`, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP ${response.status}`);
       }
 
-      document.getElementById("temperature").textContent = reading.temperature.toFixed(1);
-      document.getElementById("humidity").textContent = reading.humidity.toFixed(1);
-      document.getElementById("updatedAt").textContent = new Date().toLocaleTimeString("fr-FR");
-      message.textContent = "Mesures reçues.";
-      connection.dataset.state = "connected";
-      connectionText.textContent = "Connecté";
-    }, (error) => {
-      connection.dataset.state = "error";
-      connectionText.textContent = "Erreur";
-      message.textContent = error.message;
-    });
+      const values = await response.json();
+      if (!values || typeof values !== "object") {
+        throw new Error("La base ne contient pas d'objet avec les états des LED.");
+      }
 
-    onValue(ref(database, "/Led_1"), (snapshot) => {
-      const isOn = snapshot.val() === true;
-      document.getElementById("ledIndicator").classList.toggle("on", isOn);
-      document.getElementById("ledState").textContent = isOn ? "Allumée" : "Éteinte";
-    });
+      for (const key of ledKeys) {
+        if (typeof values[key] !== "boolean") {
+          throw new Error(`Le champ "${key}" est absent ou n'est pas un booléen.`);
+        }
+        renderLed(key, values[key]);
+      }
 
-    async function setLedState(isOn) {
-      const buttons = [document.getElementById("ledOn"), document.getElementById("ledOff")];
+      const sensor = values.dht22;
+      if (sensor && Number.isFinite(sensor.temperature) && Number.isFinite(sensor.humidity)) {
+        document.getElementById("temperature").textContent = sensor.temperature.toFixed(1);
+        document.getElementById("humidity").textContent = sensor.humidity.toFixed(1);
+      } else {
+        document.getElementById("temperature").textContent = "--.-";
+        document.getElementById("humidity").textContent = "--.-";
+      }
+
+      setConnection("connected", "Connecté");
+      message.textContent = sensor ? "Mesures et états des LED synchronisés avec Firebase." : "En attente des premières mesures du DHT22.";
+      updatedAt.textContent = `Dernière synchronisation : ${new Date().toLocaleTimeString("fr-FR")}`;
+    }
+
+    async function writeLedState(key, value) {
+      const buttons = document.querySelectorAll(`button[data-led="${key}"]`);
       buttons.forEach((button) => { button.disabled = true; });
+      message.textContent = `Envoi de la commande pour ${key === "led_1" ? "LED 1" : "LED 2"}...`;
+
       try {
-        await set(ref(database, "/Led_1"), isOn);
+        const response = await fetch(`${databaseUrl}/${key}.json`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(value)
+        });
+        if (!response.ok) {
+          const details = await response.text();
+          throw new Error(`Erreur HTTP ${response.status}${details ? ` : ${details}` : ""}`);
+        }
+        await readLedStates();
       } catch (error) {
-        message.textContent = `Échec de la commande LED : ${error.message}`;
+        setConnection("error", "Erreur");
+        message.textContent = `Échec de la commande : ${error.message}. Vérifiez les règles Firebase.`;
       } finally {
         buttons.forEach((button) => { button.disabled = false; });
       }
     }
 
-    document.getElementById("ledOn").addEventListener("click", () => setLedState(true));
-    document.getElementById("ledOff").addEventListener("click", () => setLedState(false));
+    document.querySelectorAll("button[data-led]").forEach((button) => {
+      button.addEventListener("click", () => {
+        writeLedState(button.dataset.led, button.dataset.value === "true");
+      });
+    });
+
+    readLedStates().catch((error) => {
+      setConnection("error", "Erreur");
+      message.textContent = `Impossible de lire Firebase : ${error.message}. Vérifiez les règles Firebase.`;
+    });
+    window.setInterval(() => {
+      readLedStates().catch((error) => {
+        setConnection("error", "Erreur");
+        message.textContent = `Impossible de lire Firebase : ${error.message}. Vérifiez les règles Firebase.`;
+      });
+    }, 2000);
   </script>
 </body>
 </html>
